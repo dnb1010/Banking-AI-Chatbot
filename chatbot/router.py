@@ -6,7 +6,6 @@ from database.queries import *
 from chatbot.response_builder import *
 
 
-
 def handle_message(message, user_account):
 
     intent = classify_intent(message)
@@ -56,7 +55,6 @@ def handle_message(message, user_account):
     if intent == 'transfer':
 
         amount = extract_amount(message)
-
         to_account = extract_account(message)
 
         transfer_money(
@@ -65,6 +63,41 @@ def handle_message(message, user_account):
             amount
         )
 
-        return build_transfer_response()
+        fraud = run_fraud_detection()
+        return {
+            "message": build_transfer_response(),
+            "fraud": fraud,
+        }
+
+    if intent == 'withdraw':
+
+        amount = extract_amount(message)
+        # withdraw dùng account_id từ UI (user_account)
+        withdraw_money(user_account, amount)
+
+        fraud = run_fraud_detection()
+        return {
+            "message": "Rút tiền thành công",
+            "fraud": fraud,
+        }
+
+    if intent == 'loan':
+        # loan: lấy thông tin khoản vay
+        info = get_loan_info(user_account)
+        if not info:
+            return "Không tìm thấy thông tin khoản vay"
+        return {
+            "message": "Thông tin khoản vay",
+            "loan": info,
+        }
+
+    if intent == 'savings':
+        info = get_savings_info(user_account)
+        if not info:
+            return "Không tìm thấy thông tin sổ tiết kiệm"
+        return {
+            "message": "Thông tin sổ tiết kiệm",
+            "savings": info,
+        }
 
     return build_unknown_response()
