@@ -21,9 +21,37 @@ def handle_message(message, user_account):
 
         transactions = get_latest_transactions(user_account)
 
-        return transactions.to_dict(
-            orient='records'
-        )
+        # Đảm bảo trả về dữ liệu JSON-serializable cho frontend (không dùng Timestamp/np types)
+        try:
+            df = transactions
+
+            if df is None or getattr(df, "empty", True):
+                return []
+
+            records = df.to_dict(orient='records')
+
+            safe_records = []
+            for row in records:
+                safe_row = {}
+                for k, v in row.items():
+                    # Chuyển NaN/None về None, các kiểu lạ về string
+                    if v is None:
+                        safe_row[k] = None
+                    else:
+                        try:
+                            # pandas NaN
+                            if str(v) == 'nan':
+                                safe_row[k] = None
+                            else:
+                                safe_row[k] = v if isinstance(v, (int, float, bool, str)) else str(v)
+                        except Exception:
+                            safe_row[k] = str(v)
+
+                safe_records.append(safe_row)
+
+            return safe_records
+        except Exception:
+            return []
 
     if intent == 'transfer':
 
